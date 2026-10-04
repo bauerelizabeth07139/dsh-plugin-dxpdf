@@ -271,7 +271,9 @@ conversion observes the caller's cancellation signal.
 ## Runner resolution order
 
 The first candidate that exists on disk wins. `pythonPath`, `cliPath` and
-`executable` come from configuration; the rest from the environment.
+`executable` come from configuration; the rest from the environment. An
+interpreter may be named by path or by bare command (`python3`, `py`), which is
+resolved on `PATH` — so `DXPDF_PYTHON=python3` works as written.
 
 | # | Candidate | How it is spawned |
 |---|---|---|
