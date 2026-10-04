@@ -13,15 +13,17 @@ import {
 	BUNDLED_CLI_PATH,
 	convertDocx,
 	paginateCheck,
+	resolvePython,
 } from "../lib/convert.js";
 
 // Machine-local engine locations, so the suite runs anywhere: the test
-// overrides, then the machine variables the plugin reads, then the shim this
-// package ships (which only needs `python -m pip install dxpdf`).
+// overrides, then the machine variables the plugin reads, then whatever Python
+// is on PATH paired with the shim this package ships.
 const PYTHON =
-	process.env.DXPDF_TEST_PYTHON ??
-	process.env.DXPDF_PYTHON ??
-	(process.platform === "win32" ? "python.exe" : "python3");
+	(await resolvePython({
+		env: process.env,
+		pythonPath: process.env.DXPDF_TEST_PYTHON ?? process.env.DXPDF_PYTHON,
+	})) ?? (process.platform === "win32" ? "python.exe" : "python3");
 const CLI = process.env.DXPDF_TEST_CLI ?? process.env.DXPDF_CLI ?? BUNDLED_CLI_PATH;
 const PYTHON_ENV = { DXPDF_PYTHON: PYTHON, DXPDF_CLI: CLI };
 const fixture = (name) => fileURLToPath(new URL(`./fixtures/${name}`, import.meta.url));

@@ -17,6 +17,7 @@ import {
 	BUNDLED_CLI_PATH,
 	convertDocx,
 	countPdfPages,
+	resolvePython,
 	resolveRunner,
 } from "../lib/convert.js";
 
@@ -24,9 +25,10 @@ import {
 // back to the machine variables the plugin itself reads, then to the shim this
 // package ships — the one that only needs `python -m pip install dxpdf`.
 const PYTHON =
-	process.env.DXPDF_TEST_PYTHON ??
-	process.env.DXPDF_PYTHON ??
-	(process.platform === "win32" ? "python.exe" : "python3");
+	(await resolvePython({
+		env: process.env,
+		pythonPath: process.env.DXPDF_TEST_PYTHON ?? process.env.DXPDF_PYTHON,
+	})) ?? (process.platform === "win32" ? "python.exe" : "python3");
 const CLI = process.env.DXPDF_TEST_CLI ?? process.env.DXPDF_CLI ?? BUNDLED_CLI_PATH;
 const SHIM = process.env.DXPDF_TEST_SHIM ?? process.env.DXPDF_EXE ?? "";
 
@@ -41,6 +43,11 @@ const multiPage = multiArg ?? fixture("multi-page.docx");
 async function check(label, body) {
 	try {
 		const detail = await body();
+		if (typeof detail === "string" && detail.startsWith("SKIP")) {
+			skipped++;
+			console.log(`  SKIP  ${label}${detail.length > 4 ? ` — ${detail.slice(5)}` : ""}`);
+			return true;
+		}
 		console.log(`  PASS  ${label}${detail ? ` — ${detail}` : ""}`);
 		return true;
 	} catch (error) {
@@ -50,6 +57,7 @@ async function check(label, body) {
 }
 
 const results = [];
+let skipped = 0;
 const scratch = await mkdtemp(join(tmpdir(), "dxpdf-plugin-test-"));
 
 console.log("dxpdf plugin core");
@@ -76,7 +84,7 @@ results.push(
 results.push(
 	await check("resolves and uses the .cmd shim strategy", async () => {
 		if (SHIM === "") {
-			return "skipped — this machine has no dxpdf shim; DXPDF_TEST_SHIM points at one";
+			return "SKIP this machine has no dxpdf shim; set DXPDF_TEST_SHIM to one";
 		}
 		const runner = await resolveRunner({ env: {}, executable: SHIM });
 		assert.equal(runner.kind, "shim");
@@ -214,5 +222,7 @@ results.push(
 await rm(scratch, { recursive: true, force: true });
 
 const passed = results.filter(Boolean).length;
-console.log(`\n${passed}/${results.length} checks passed`);
+console.log(
+	`\n${passed}/${results.length} checks passed${skipped ? `, ${skipped} skipped` : ""}`,
+);
 process.exit(passed === results.length ? 0 : 1);
