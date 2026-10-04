@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" role="img" aria-label="dxpdf — DOCX to PDF">
+  <title>dxpdf — DOCX to PDF</title>
+  <rect width="128" height="128" rx="26" fill="#0b1220"/>
+  <g font-family="Inter, 'Segoe UI', Helvetica, Arial, sans-serif" font-weight="700" text-anchor="middle">
+    <rect x="12" y="30" width="42" height="58" rx="7" fill="#13233a" stroke="#38bdf8" stroke-width="2.5"/>
+    <path d="M20 46h26M20 55h26M20 64h16" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <text x="33" y="80" font-size="12" fill="#e2e8f0">DOCX</text>
+    <rect x="74" y="30" width="42" height="58" rx="7" fill="#2a1114" stroke="#f87171" stroke-width="2.5"/>
+    <path d="M82 46h26M82 55h26M82 64h16" stroke="#fca5a5" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+    <text x="95" y="80" font-size="12" fill="#fee2e2">PDF</text>
+  </g>
+  <g stroke="#e2e8f0" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none">
+    <path d="M56 59h14"/>
+    <path d="M65 53l6.5 6-6.5 6"/>
+  </g>
+</svg>

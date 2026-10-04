@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dxpdf DOCX to PDF",
+    "description": "Convert Word .docx files to PDF with the dxpdf Rust/Skia engine — no Microsoft Office, no LibreOffice, no network. Repairs the schema-invalid constructs WPS Office writes and restores Word's odd/even page parity."
+  }
+}

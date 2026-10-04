@@ -1,0 +1,8 @@
+# Python side of the plugin.
+#
+# `dxpdf` is the conversion engine itself; the plugin drives it through the CLI
+# shim it ships (py/dxpdf_cli.py) or through an installed `dxpdf` command.
+# `lxml` is used by py/paginate.py — the optional Word-parity pagination pass —
+# and is not needed for a plain conversion.
+dxpdf>=0.8.1
+lxml>=5.0

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "dxpdf DOCX 转 PDF",
+    "description": "用 dxpdf(Rust + Skia)引擎把 Word .docx 转成 PDF——不需要 Microsoft Office、不需要 LibreOffice、不联网。可自动修复 WPS Office 写出的非法 OOXML 结构,并补齐 Word 的奇偶页节分页。"
+  }
+}
