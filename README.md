@@ -438,6 +438,61 @@ The section is registered with `ctx.systemPrompt.section(...)`, which returns
 its own Cordis effect disposer, so it disappears with the plugin rather than
 accumulating across reloads. `announcePolicy: false` turns it off.
 
+## Safety
+
+The community standard for a DSH plugin has two halves: an **audit** before it is
+trusted, and a **five-level verification** after it is installed — compose, boot
+smoke, health scan, full boot, functional test. This plugin is auditable and
+verifiable by construction, and both halves are enforced rather than asserted.
+
+**What it may touch** — the whole list:
+
+| Surface | Behaviour |
+|---|---|
+| Processes | Spawns the engine and its Python helpers with an explicit argv array; no shell, so no value is ever parsed as a command |
+| Files written | The PDF the caller named, and one `mkdtemp` directory under the system temp directory |
+| Network | None, in JavaScript or in Python |
+| Credentials | None: no `.credentials.yaml`, no `settings.yaml`, no `*_API_KEY` / `*_TOKEN` |
+| Dynamic code | None: no `eval`, no `new Function`, no `vm`, no `os.system` |
+| Install time | Nothing runs: no `preinstall` / `install` / `postinstall` / `prepare` hook |
+| Dependencies | Zero runtime dependencies |
+
+**The child's environment is an allow-list.** A conversion child gets `PATH`,
+`SystemRoot`, `TEMP`, the locale variables, and anything named `PYTHON*` or
+`DXPDF_*` — and nothing else. The harness's environment also holds model API keys
+and session secrets; none of them match the list, so none of them reach the
+converter. `pythonChildEnv` in `lib/convert.js` is the whole rule, and
+`test/security.test.mjs` fails if a secret named `DSH_API_KEY`, `GPT_API_KEY`,
+`GITHUB_TOKEN`, `AWS_SECRET_ACCESS_KEY` or `MYSQL_PASSWORD` ever gets through.
+
+**Verify it yourself:**
+
+```powershell
+npm run test:security     # 12 checks over the shipped files
+```
+
+`SECURITY.md` states the same posture in prose, including what a hostile
+document can and cannot do.
+
+### Five-level verification
+
+Levels 1–4 say "it loads"; level 5 says "it does the job". The evidence for this
+package, on the machine it was written on:
+
+| Level | Check | Result |
+|---|---|---|
+| L1 compose | profile composes with the bundle mounted | `dsh --profile plugintest --dump-config` → exit 0 |
+| L2 smoke | plugin module loads through the loader | `node --import ./test/hooks.mjs test/tool.test.mjs` → 13/13 |
+| L3 health | static audit of the shipped files | `plugin_audit.py` → 0 high findings; `npm run test:security` → 12/12 |
+| L4 boot | entry module instantiates and registers its tool | `test/tool.test.mjs` registers the definition from `lib/index.js` and runs `execute`/`render`/`presentCall` |
+| L5 functional | the plugin's real capability, end to end | a 3.0 MB, 5 300-paragraph book converts to a 460-page PDF: 15 603 equations seen, 5 972 lowered, 18 parity fillers |
+
+`dsh-doctor` is not shipped in every deployment; where it is absent, L4 is
+evidenced by loading the entry module exactly as the loader does (through this
+package's own resolve hook) instead of by a boot probe.
+
+
+
 ## Tests
 
 The suites are plain Node scripts with no test framework and no dependencies of
@@ -467,6 +522,11 @@ npm run test:repair
 # of them present, a clean document is not rewritten, the source is untouched,
 # and the fraction policy changes the result the way it promises.
 npm run test:math
+
+# Safety — 12 checks over the shipped files: no install hook, no dependency, no
+# shell, no eval, no network, no credential, no secret in a child's environment,
+# no write outside the caller's paths, nothing obfuscated.
+npm run test:security
 
 # Word-parity pagination — 6 checks: the cheap check finds no break in an
 # ordinary document, finds the odd-page break in parity-sections.docx, and the
