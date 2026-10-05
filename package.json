@@ -1,7 +1,7 @@
 {
   "name": "dsh-plugin-dxpdf",
-  "version": "1.1.0",
-  "description": "DeepSeek Harness plugin exposing dxpdf_convert: convert a Microsoft Word DOCX file to PDF with the dxpdf Rust/Skia engine — no Microsoft Office, no LibreOffice, no network. It repairs the schema-invalid constructs WPS Office writes and restores Word's odd/even page parity.",
+  "version": "1.2.0",
+  "description": "DeepSeek Harness plugin exposing dxpdf_convert: convert a Microsoft Word DOCX file to PDF with the dxpdf Rust/Skia engine — no Microsoft Office, no LibreOffice, no network. It repairs the schema-invalid constructs WPS Office writes, lowers the equations the engine would silently drop, and restores Word's odd/even page parity.",
   "type": "module",
   "license": "MIT",
   "author": "bauerelizabeth07139",
@@ -46,10 +46,11 @@
     }
   },
   "scripts": {
-    "test": "node test/convert.test.mjs && node --import ./test/hooks.mjs test/tool.test.mjs && node test/repair.test.mjs && node test/paginate.test.mjs && node test/bundle.test.mjs",
+    "test": "node test/convert.test.mjs && node --import ./test/hooks.mjs test/tool.test.mjs && node test/repair.test.mjs && node test/math.test.mjs && node test/paginate.test.mjs && node test/bundle.test.mjs",
     "test:core": "node test/convert.test.mjs",
     "test:tool": "node --import ./test/hooks.mjs test/tool.test.mjs",
     "test:repair": "node test/repair.test.mjs",
+    "test:math": "node test/math.test.mjs",
     "test:paginate": "node test/paginate.test.mjs",
     "test:bundle": "node test/bundle.test.mjs"
   },

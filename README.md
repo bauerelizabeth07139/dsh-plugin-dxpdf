@@ -91,7 +91,76 @@ unavailable. This plugin bridges that gap twice over:
   `.exe` path goes through `cmd.exe`, and that path double-quotes every token.
 
 It also repairs the documents dxpdf would otherwise refuse — see
-[WPS Office compatibility](#wps-office-compatibility).
+[WPS Office compatibility](#wps-office-compatibility) — and the equations it
+would otherwise drop — see
+[Equations the engine cannot lay out](#equations-the-engine-cannot-lay-out).
+
+## Equations the engine cannot lay out
+
+dxpdf implements three OMML constructs and drops the whole subtree of every
+other one. It does not report this: the conversion succeeds and the formula is
+simply not on the page. Measured against dxpdf 0.8.1, one equation per construct
+in one document:
+
+| | Constructs |
+|---|---|
+| **renders** | `m:r`, `m:sSup`, `m:f` |
+| **dropped, silently** | `m:sSub`, `m:sSubSup`, `m:sPre`, `m:rad`, `m:d`, `m:nary`, `m:func`, `m:limLow`, `m:limUpp`, `m:acc`, `m:bar`, `m:groupChr`, `m:box`, `m:borderBox`, `m:marg`, `m:phant`, `m:eqArr`, `m:m` |
+
+The drop is total, not partial. `<m:rad><m:e><m:sSup>…</m:sSup></m:e></m:rad>`
+loses the superscript as well, and a `m:sSub` whose base is a supported `m:f`
+loses the fraction, so nothing inside an unimplemented construct can be trusted
+to survive. A textbook whose formulas are mostly `m:rad`, `m:sSub` and `m:nary`
+converts to a PDF of blank gaps, which is how this was found: 15 603 equations
+in one chapter, 5 972 of them dropped.
+
+`py/omml.py` rewrites exactly those equations into the subset the engine does
+lay out, and leaves every other equation byte for byte alone. What it can use
+was measured, not assumed:
+
+| Measured behaviour | Consequence |
+|---|---|
+| Outside math, `w:rPr` is honoured — `w:vertAlign="subscript"` gives 58 % of the size 1.0 pt below the baseline, `w:sz="16"` gives 8 pt | A script is **hoisted out of the equation** into an ordinary run, where it becomes a real sub/superscript |
+| Inside math, `w:rPr` is ignored — the same properties leave text at 11 pt on the math baseline | A script inside a fraction cannot be positioned, so it is written `σ₀` (Unicode) or `L_(D)` |
+| A combining character keeps its zero advance but **no ink reaches the page** (`G` + U+0305 is a plain `G`, whatever the run asks for) | Accents and rules use the *spacing* character of the same shape: `xˆ`, `v→`, `x‾` |
+
+So the pass rewrites an equation this way:
+
+| OMML | Rewritten as |
+|---|---|
+| `m:sSub` | base, then an ordinary run with `w:vertAlign="subscript"` |
+| `m:sSup` | unchanged when it stands alone (native geometry is as good), otherwise a superscript run |
+| `m:sSubSup`, `m:sPre` | the same, staggered in reading order |
+| `m:f` | unchanged — it is the one construct that stacks; only its sides are lowered |
+| `m:rad` | `√` followed by the radicand in parentheses, or under a trailing overline |
+| `m:d` | its own `begin`/`end` characters — `(`, `[`, `⟨` … |
+| `m:nary` | the operator, then its limits as scripts, then the body |
+| `m:acc`, `m:bar` | the base followed by a spacing accent or rule |
+| `m:groupChr` | the base followed by its group character |
+| `m:box`, `m:borderBox`, `m:marg`, `m:phant` | the content alone — they carry no glyphs |
+| `m:eqArr`, `m:m` | rows separated by `;` |
+
+Three options decide the trade-offs a reader may care about:
+
+```
+--fraction native|linear   keep fractions stacked and write their scripts in
+                           Unicode (default), or spell them out as num/den so
+                           every script stays a real subscript
+--radical  parens|overline parenthesise a root's radicand (default), or follow
+                           it with a spacing overline
+--scripts  unicode|brackets how a script inside a fraction is written
+```
+
+The pass scans before it writes, and writes nothing at all when a document
+contains no affected equation — such a document is neither copied nor converted
+twice. The converted copy lives in a temporary directory and the source file is
+never modified. `dxpdf_convert` reports what it did:
+
+```
+Converted book.docx -> book.pdf (7.4 MB, 31 512 ms, image_dpi=220, 450 pages).
+Lowered 5972 equation(s) dxpdf would have dropped (sSub×7853, d×2421, nary×1247,
+rad×387, acc×404, sSubSup×241) in a copy first; the source file was not modified.
+```
 
 ## WPS Office compatibility
 
@@ -271,9 +340,7 @@ conversion observes the caller's cancellation signal.
 ## Runner resolution order
 
 The first candidate that exists on disk wins. `pythonPath`, `cliPath` and
-`executable` come from configuration; the rest from the environment. An
-interpreter may be named by path or by bare command (`python3`, `py`), which is
-resolved on `PATH` — so `DXPDF_PYTHON=python3` works as written.
+`executable` come from configuration; the rest from the environment.
 
 | # | Candidate | How it is spawned |
 |---|---|---|
@@ -394,6 +461,12 @@ npm run test:tool
 # plugin converts it anyway, the source is left untouched, both policies work,
 # and a repaired copy needs no second repair.
 npm run test:repair
+
+# Math lowering — 6 checks: the plain engine is shown to lose the fixture's
+# markers and symbols (that is the defect), the same document converts with all
+# of them present, a clean document is not rewritten, the source is untouched,
+# and the fraction policy changes the result the way it promises.
+npm run test:math
 
 # Word-parity pagination — 6 checks: the cheap check finds no break in an
 # ordinary document, finds the odd-page break in parity-sections.docx, and the
