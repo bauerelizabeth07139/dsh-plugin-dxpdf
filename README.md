@@ -1,5 +1,7 @@
 # dsh-plugin-dxpdf
 
+[![dsh.so risk](https://www.dsh.so/badge/dsh-plugin-dxpdf.svg)](https://www.dsh.so/artifact/dsh-plugin-dxpdf/)
+
 A DeepSeek Harness (DSH) host plugin that exposes one tool, **`dxpdf_convert`**,
 which converts a Microsoft Word `.docx` file to `.pdf` with the third-party
 [dxpdf](https://github.com/nerdy-pro/dxpdf) engine — a compiled Rust + Skia
